@@ -12,13 +12,15 @@
 #' least one random term, and none of the random terms can be specified with interactions
 #' with other terms. Only Gaussian models are currently supported. If NULL, then formula
 #' and data should both be non-NULL.
-#' @param rterms Character string or a vector of character strings of random term(s) to
+#' @param rterms A character string or a vector of character strings of random term(s) to
 #' include in repeatability estimations. If NULL (default), include all random terms.
-#' @param gam_pars List of parameters for mgcv::gam model specification, which will be
+#' @param gam_pars A list of parameters for mgcv::gam model specification, which will be
 #' used when formula and data are both non-NULL. If TRUE, then the default parameter
-#' values in mgcv::gam will be used. Should not contain the control(nthreads) parameter,
-#' as this will be set by rptgam. Only Gaussian models are currently supported.
-#' @param bam_pars List of parameters for mgcv::bam model specification, which will be
+#' values in mgcv::gam will be used. Note that gam uses method = "GCV.Cp" by default. To 
+#' use 'REML' set gam_pars to list(method="REML"), in addition to other settings of interest.
+#' Should not contain the control(nthreads) parameter, as this will be set by rptgam. 
+#' Only Gaussian models are currently supported.
+#' @param bam_pars A list of parameters for mgcv::bam model specification, which will be
 #' used when formula and data are both non-NULL. If TRUE, then the default parameter values
 #' in mgcv::bam will be used. Should not contain the nthreads (which is used when
 #' DISCRETE = TRUE) or the cluster parameters, as they will be set by rptgam. Only Gaussian
@@ -30,10 +32,11 @@
 #' 'reb2' are available when the GAM model contains exactly one random term.
 #' See \strong{Details} below for more information on the various types.
 #' @param ci Confidence level for the bootstrap interval(s). Default to 0.95.
-#' @param ci_type Type of ci for the boostraps. Can be 'perc', which uses R's quantile
-#' method or 'bca' which uses the bias-corrected and accelerated method. 'all' (default)
-#' returns both of these types.
-#' @param case_resample Vector of booleans. Required when the 'case' bootstrap method is
+#' @param ci_type Type of ci for the bootstraps. Can be 'perc', which uses R's quantile
+#' method or 'bca' which uses the bias-corrected and accelerated method (BCa). 'all' (default)
+#' returns both of these types. See \strong{Details} below for more information on the
+#' BCa method used in rptgam.
+#' @param case_resample A vector of logicals. Required when the 'case' bootstrap method is
 #' used, and specifies whether each level of the model should be resampled. "The levels
 #' should be specified from the highest level (largest cluster) of the hierarchy to the
 #' lowest (observation-level); for example for students within a school, specify the school
@@ -46,38 +49,85 @@
 #' 'case' type bootstrap. This number will be ignored if it is below the number of rows
 #' allowable to run the gam model. If NULL (default), then will use no less than number
 #' of rows allowable to run the gam model.
-#' @param nperm Number of permutations for calcualting asymptotic p-values for the
-#' repeatability estimates. Default is 0.
-#' @param aic Boolean (default is TRUE) indicating whether to calculate the AIC(s) of t
+#' @param nperm Number of permutations for calculating asymptotic p-values for the
+#' repeatability estimates. Default is 0. See \strong{Details} below for information 
+#' on the permutation method used in rptgam.
+#' @param aic A logical variable (default is TRUE) indicating whether to calculate the AIC(s) of t
 #' he models with and without the random effect(s).
-#' @param select Boolean (default is TRUE) indicating whether to calcualte coefficients
-#' for random effects with and without selection penalties.
-#' @param saveboot Boolean (default is TRUE) indicating whether to save the bootstraped
+#' @param select A logical variable (default is TRUE) indicating whether to calculate coefficients
+#' for random effects with and without selection penalties. See \strong{Details} below.
+#' @param saveboot A logical variable (default is TRUE) indicating whether to save the bootstrapped
 #' repeatability estimates in the returned object.
-#' @param savepermute Boolean (default is TRUE) indicating whether to save the permutated
+#' @param savepermute A logical variable (default is TRUE) indicating whether to save the permutated
 #' repeatability estimates in the returned object.
 #' @param seed Numeric (which is converted to integer) to be used in set.seed to allow
-#' reproducible reults of bootstraps and permutations. Default is NULL.
-#' @param verbose Boolean (default is TRUE) indicating if messages should be printed.
-#' @param parallel Boolean (default is TRUE) indicating if the models, bootstraps, and
-#' permutations should be run in parallel
-#' @param ncores Integer indicating how many cores to use for parallel processing.
+#' reproducible results of bootstraps and permutations. Default is NULL.
+#' @param verbose A logical variable (default is TRUE) indicating if messages should be printed.
+#' @param parallel A logical variable (default is TRUE) indicating if the models, bootstraps, and
+#' permutations should be run in parallel.
+#' @param ncores An integer indicating how many cores to use for parallel processing.
 #' Positive integers specify the number of cores. -1 means using all processors, -2 means
-#' using 1 less than all processores, etc. Default is -1.
-#' @param logical Boolean indicating if virtual CPU cores should be counted when ncores
+#' using 1 less than all processors, etc. Default is -1.
+#' @param logical A logical variable indicating if virtual CPU cores should be counted when ncores
 #' is negative (the same as running parallel::detectCores(logical = TRUE)). FALSE (default)
 #' only counts physical cores.
 #' @param cl_type One of 'PSOCK' (default) or 'FORK', indicating the type of cluster to
 #' use for parallel processing. 'FORK' can be faster than 'PSOCK' but can be unstable
 #' and isn't available in Windows.
-#' @param blas_threads Integer indicating the number of BLAS threads to use. For
+#' @param blas_threads An integer indicating the number of BLAS threads to use. For
 #' multi-threaded BLAS libraries, such as MKL, OpenBLAS and Apple BLAS, and when parallel
 #' is set to TRUE, is can be faster to limit BLAS threads to 1. This is accomplished
 #' via RhpcBLASctl::blas_set_num_threads(1), which will be installed if it is not already.
-#' R's default BLAS library is single threaded, and so this parameter isn't neccesary.
+#' R's default BLAS library is single threaded, and so this parameter isn't necessary.
 #' NULL (default) skips this process.
+#' @details 
+#' \strong{Bootstraps:} 
+#' The types of bootstraps can be divided into parametric, semi-parametric, and nonparametric categories.
+#' "The parametric bootstrap requires the strongest assumptions: the explanatory variables are considered 
+#' fixed, and both the model (specification) and the distribution(s) are assumed to be correct. The 
+#' residual bootstrap requires weaker assumptions: apart from considering the explanatory variables 
+#' as fixed, only the model (specification) is assumed to be correct. This implies, for example, that 
+#' the residuals are assumed to be homoskedastic. The cases bootstrap, finally, requires minimal 
+#' assumptions: only the hierarchical dependency in the data is assumed to be specified correctly" 
+#' (Van der Leeden et al., 2008). 
+#' 
+#' The parametric method is similar to the bootstrap method used in rptR, which in turn is based on lme4's 
+#' 'simulate' function. This method "simulates bootstrap samples from the estimated distribution functions. 
+#' That is, error terms and random effects are simulated from their estimated normal distributions and are 
+#' combined into bootstrap samples via the fitted model equation." (lmeresampler::parametric_bootstrap)
+#' 
+#' The residual bootstrap method "resamples the residual quantities from the fitted linear mixed-effects 
+#' model in order to generate bootstrap resamples. That is, a random sample, drawn with replacement, is 
+#' taken from the estimated error terms and the EBLUPS (at each level) and the random samples are combined 
+#' into bootstrap samples via the fitted model equation." (lmeresampler::resid_bootstrap)
+#' 
+#' The cgr bootstrap method (Carpenter et al., 2003) adjusts the residual method (which 
+#' can underestimate the variances) by centering the random effects and residuals to resample from a 
+#' distribution with mean zero. See lmeresampler::cgr_bootstrap for more details.
+#' 
+#' The reb0, reb1, and reb2 belong to the class of the random effects block (REB) bootstrap, which 
+#' is a semi-parametric method that can better account for distribution and assumptions misspecification 
+#' (Chambers & Chandra, 2013). The REB method is only applicable for models with exactly one random term. 
+#' See lmeresampler::reb_bootstrap for more on the theory and for details on the three types of REB.
+#' 
+#' The cases bootstrap is a fully nonparametric method that "resamples the data with respect to the clusters 
+#' in order to generate bootstrap samples. Depending on the nature of the data, the resampling can be done 
+#' only for the higher-level cluster(s), only at the observation-level within a cluster, or at all levels." 
+#' (lmeresampler::case_bootstrap). According to Van der Leeden et al. (2008), models with only one random term, 
+#' denoting the individuals ("level 2"), and where level 1 (i.e., rows) is repeated measures, should probably 
+#' only resample level 2, but not within individuals. See Van der Leeden et al. (2008) for more details.
+#' 
+#' \strong{Permutations:}
+#' Permutations are performed according to Lee et al. (2012), which permutes the weighted residuals both within 
+#' and among subjects. Note that this permutation method is different from the one currently used in rptR.
+#' 
+#' \strong{BCa:}
+#' 
+#' \strong{SELECT comparison:}
+#' If TRUE, it will run the opposite method used in the original model and both outputs will be returned for comparison.
+#' 
 #' @return Returns an object of class \code{rptgam}.
-#'
+#' 
 #' @examples
 #' library(mgcv)
 #' dat <- gamSim(1,n=100,scale=2)
@@ -86,7 +136,7 @@
 #' dat$y <- dat$y + b[fac]
 #' dat$fac <- as.factor(fac)
 #'
-#' # GAM model with one random terms
+#' # GAM model with one random term
 #' rm1 <- gam(y ~ s(fac,bs="re")+s(x0)+s(x1)+s(x2)+s(x3),
 #' data=dat,method="REML")
 #'
@@ -118,12 +168,21 @@
 #' @references Nakagawa, S. & Schielzeth, H. (2010) \emph{Repeatability for
 #'      Gaussian and non-Gaussian data: a practical guide for biologists}.
 #'      Biological Reviews 85: 935-956.
+#' @references Van der Leeden, R., Meijer, E., & Busing, F. M. (2008). Resampling 
+#' multilevel models. In Handbook of multilevel analysis (pp. 401-433). Springer, New York, NY.
+#' @references Carpenter, J. R., Goldstein, H. and Rasbash, J. (2003) A novel bootstrap 
+#' procedure for assessing the relationship between class size and achievement. Journal of 
+#' the Royal Statistical Society. Series C (Applied Statistics), 52, 431–443.
+#' @references Chambers, R. and Chandra, H. (2013) A random effect block bootstrap for clustered 
+#' data. Journal of Computational and Graphical Statistics, 22, 452–470.
+#' @references Lee, O. E., & Braun, T. M. (2012). Permutation tests for random effects in linear 
+#' mixed models. Biometrics, 68(2), 486-493.
 #' @references https://github.com/aloy/lmeresampler
 #'
 #' @author Eliezer Pickholtz (eyp3@@cornell.edu)
 #' @export
-
-rptgam = function(formula = NULL, data = NULL, gamObj = NULL, rterms = NULL,
+#'
+rptgam <- function(formula = NULL, data = NULL, gamObj = NULL, rterms = NULL,
                    gam_pars = NULL, bam_pars = NULL,
                    nboot = 0, boot_type = 'param', ci = 0.95, ci_type = 'all',
                    case_resample = NULL, case_tries = 100, case_minrows = NULL,

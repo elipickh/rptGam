@@ -11,3 +11,4 @@ License: GPL (>= 2)
 Imports: methods, stats, mgcv (>= 1.8-29), parallel (>= 3.1.2), pbapply
 Suggests: RhpcBLASctl
 RoxygenNote: 6.1.1
+Encoding: UTF-8
