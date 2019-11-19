@@ -1,0 +1,142 @@
+---
+output: 
+  github_document:
+    fig_width: 5
+    fig_height: 5
+  html_preview: false
+editor_options: 
+  chunk_output_type: console
+---
+rptGam
+=========================================================
+
+Overview
+--------
+
+**rptGam** is a package in R that estimates the repeatabilities of one or more random rerms in generalized additive models (GAM), and specifically gam and bam models from [mgcv](https://cran.r-project.org/web/packages/mgcv/index.html). **rptGam** was inspired by, and has similar functionality to, [rptR](https://cran.r-project.org/web/packages/rptR/index.html), which calculates repeatabilities from [lme4](https://cran.r-project.org/web/packages/lme4/index.html) linear mixed-effects models. See rptR's [vignette](https://cran.r-project.org/web/packages/rptR/vignettes/rptR.html) and [paper](http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12797/full) for an overview og repeatabilities.
+
+Notes:
+* **rptGam** currenly supports only Gaussian models
+* rptgam accepts any valid mgcv model containing at least one random term. Interactions are allowed as long as none of the random terms interact with any other term (which would invalidate the random terms' repatability estimate)
+* The code in **rptGam** includes a small 'hack' to a few mgcv functions to enable faster refits of mgcv models, which allows for higher bootstrap and permutation repeats.
+
+Installation
+------------
+
+``` r
+# To install the latest version from Github:
+# install.packages("devtools")
+devtools::install_github("elipickh/rptGam")
+```
+
+Usage
+------------
+
+```{r}
+library(rptGam)
+
+# Simulate data with one continuous predictor, one factor predictor and two grouped (factor) predictors
+set.seed(1)
+df <- mgcv::gamSim(1, n = 200, scale = 2, verbose = FALSE)[, 1:2]
+fac1 <- sample(1:3, 200, replace=TRUE)
+fac2 <- sample(1:5, 200, replace=TRUE)
+b <- rnorm(20) * .5
+df$x1 <- sample(1:4, 200, replace = TRUE)
+df$y <- df$y + b[fac1] + b[fac2] + df$x1
+df$fac1 <- as.factor(fac1)
+df$fac2 <- as.factor(fac2)
+df$x1 <- as.factor(df$x1)
+
+str(df)
+```
+
+The *rptgam* function can take as input either a model output from mgcv::gam (or mgcv::bam) or a GAM formula. 
+If using the latter option, set either *gam_pars* or *bam_pars* to TRUE (to run a gam or a bam model, respectively). Alternatively, *gam_pars*/*bam_pars* can be a list of argumetns which will be passed to mgcv when running the model.
+```{r}
+# Option 1: Create a model in mgcv and pass it to rptgam
+mod <- mgcv::gam(y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re"), 
+                 data = df, method = "REML")
+out <- rptgam(gamObj = mod)
+
+# Option 2: run the model in rptgam
+out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re"), 
+              data = df, gam_pars = TRUE)
+```
+
+Note that setting *gam_pars* to TRUE will use the *default* settings in mgcv::gam. The default *method* setting in mgcv::gam is 'GCV.Cp', which might not be the best method for estimating random effect models. So here we change the method to REML:
+```{r}
+out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re"), 
+              data = df, gam_pars = list(method = 'REML'), verbose = FALSE)
+
+# Alternativley, we could use mgcv::bam, which is often much faster for large datasets 
+# (and uses 'fREML as its default *method* setting). Using DISCRETE = TRUE can also help 
+# speed up computation (see ?mgcv::bam for more details about *bam* and *discrete*)
+#out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re"), 
+# data = df, bam_pars = list(discrete = TRUE))
+```
+
+Re-running rptgam with bootstraps and permutations
+*nboot* and *nperm* should probably increased much higher than 100.
+```{r}
+out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re"), 
+              data = df, gam_pars = TRUE, parallel = TRUE, nboot = 100, nperm = 100, 
+              aic = TRUE, select = TRUE, verbose = TRUE, seed = 1, boot_type = 'all', 
+              ci_type = 'all', case_resample = c(TRUE, TRUE, FALSE))
+```
+
+The complete gam object output from mgcv can be accessed using *$gamObj*
+```{r}
+summary(out$gamObj)
+```
+
+Access various outputs from the rptgam object:
+
+* LRT:
+```{r}
+out$lrt
+```
+
+* Bootstrap: includes se, interval width, and ci for various bootstrap methods
+```{r}
+out$rpt
+```
+
+* AIC:
+```{r}
+out$aic
+```
+
+* Penalized model:
+```{r}
+out$select
+```
+
+* Bootstrapped data is in $rpt_boot_data. For example:
+```{r}
+# Histogram of parametric bootstraps for fac1 (adj):
+hist(out$rpt_boot_data$param$fac1_adj)
+
+# Histogram of case (nonparamteric) bootstraps for fac2 (adj):
+hist(out$rpt_boot_data$case$fac2_adj)
+```
+
+* Permutations data is in $rpt_permute_data. Note that the permutation data includes the *original* rpt estimate as one of its entries
+```{r}
+hist(out$rpt_permute_data$fac1_adj)
+
+# Compare the above histogram with the estimated rpt:
+out$rpt$fac1_adj[1]
+# Can also be accessed here:
+#out$rpt_permute_data$fac1_adj[1]
+```
+
+* The call to rptgam:
+```{r}
+out$call
+```
+
+* Run info:
+```{r}
+out$run_info
+```
+

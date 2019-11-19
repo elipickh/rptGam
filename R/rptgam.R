@@ -842,7 +842,7 @@ rptgam <- function(formula = NULL, data = NULL, gamObj = NULL, rterms = NULL,
     t_out = minsec_time(t0, t1)
     cat(paste('\nTotal run time:', round(t_out[[1]], 2), t_out[[2]], '\n'))
     } else pbapply::pboptions(type = pb_option)
-
+    
   res = list(rpt = rpt_calc,
               lrt = df_lrt,
               p_permute = p_permute,
