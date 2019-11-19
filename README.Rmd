@@ -98,7 +98,7 @@ out$lrt
 
 * Bootstrap: includes se, interval width, and ci for various bootstrap methods
 ```{r}
-out$rpt
+print(out$rpt, digits = 2)
 ```
 
 * AIC:
