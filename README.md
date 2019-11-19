@@ -21,7 +21,9 @@ Notes: \* **rptGam** currenly supports only Gaussian models \* rptgam
 accepts any valid mgcv model containing at least one random term.
 Interactions are allowed as long as none of the random terms interact
 with any other term (which would invalidate the random terms’
-repatability estimate)
+repatability estimate) \* The code in **rptGam** includes a small ‘hack’
+to a few mgcv functions to enable faster refits of mgcv models, which
+allows for higher bootstrap and permutation repeats.
 
 ## Installation
 
@@ -74,11 +76,11 @@ out <- rptgam(gamObj = mod)
     ## 
     ## Setting up parallel processing (4 cores, PSOCK)...done
     ## 
-    ## Calculating AICs...done (0.07sec)
+    ## Calculating AICs...done (0.06sec)
     ## 
     ## Running "select = TRUE" model...done (0.04sec)
     ## 
-    ## Total run time: 2.74 sec
+    ## Total run time: 2.34 sec
 
 ``` r
 # Option 2: run the model in rptgam
@@ -95,7 +97,7 @@ out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re")
     ## 
     ## Running "select = TRUE" model...done (0.03sec)
     ## 
-    ## Total run time: 2.43 sec
+    ## Total run time: 2.46 sec
 
 Note that setting *gam\_pars* to TRUE will use the *default* settings in
 mgcv::gam. The default *method* setting in mgcv::gam is ‘GCV.Cp’, which
@@ -114,8 +116,9 @@ out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re")
 # data = df, bam_pars = list(discrete = TRUE))
 ```
 
-Re-running rptgam with bootstraps and
-permutations
+Re-running rptgam with bootstraps and permutations *nboot* and *nperm*
+should probably increased much higher than
+100.
 
 ``` r
 out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re"), 
@@ -125,7 +128,7 @@ out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re")
 ```
 
     ## 
-    ## Running gam model...done (0.04sec)
+    ## Running gam model...done (0.03sec)
     ## 
     ## Setting up parallel processing (4 cores, PSOCK)...done
     ## 
@@ -145,11 +148,11 @@ out <- rptgam(formula = y ~ x1 + s(x0) + s(fac1, bs = "re") + s(fac2, bs = "re")
     ##   random term 1 out of 2 (fac1)
     ##   random term 2 out of 2 (fac2)
     ## 
-    ## Calculating AICs...done (0.04sec)
+    ## Calculating AICs...done (0.03sec)
     ## 
     ## Running "select = TRUE" model...done (0.03sec)
     ## 
-    ## Total run time: 6.01 sec
+    ## Total run time: 5.5 sec
 
 The complete gam object output from mgcv can be accessed using *$gamObj*
 
@@ -204,77 +207,77 @@ out$lrt
 <!-- end list -->
 
 ``` r
-out$rpt
+print(out$rpt, digits = 2)
 ```
 
-    ##    metric boot_type ci_type     fac1_adj   fac1_unadj      fac2_adj
-    ## 1     rpt      <NA>    <NA> 1.451060e-12 1.389206e-12  3.058850e-02
-    ## 2      se      case    <NA> 1.438800e-01 1.422848e-01  8.846391e-02
-    ## 3      se       cgr    <NA> 9.735053e-03 9.185503e-03  3.314466e-02
-    ## 4      se     param    <NA> 9.677605e-03 8.943222e-03  3.350002e-02
-    ## 5      se     resid    <NA> 1.003565e-02 9.416493e-03  2.578671e-02
-    ## 6    bias      case    <NA> 3.143263e-02 2.611207e-02  4.302400e-02
-    ## 7    bias       cgr    <NA> 4.626442e-03 4.353542e-03  2.558020e-03
-    ## 8    bias     param    <NA> 4.523846e-03 4.199500e-03 -8.871696e-04
-    ## 9    bias     resid    <NA> 4.745454e-03 4.442033e-03 -9.888047e-03
-    ## 10  width      case     bca 1.115551e-12 7.178851e-04  8.561414e-02
-    ## 11  width      case    perc 2.426969e-01 1.610584e-01  3.113476e-01
-    ## 12  width       cgr     bca 2.381270e-03 4.410040e-03  1.510736e-01
-    ## 13  width       cgr    perc 3.583917e-02 3.347480e-02  1.076541e-01
-    ## 14  width     param     bca 6.682435e-12 3.727612e-04  1.535322e-01
-    ## 15  width     param    perc 3.272142e-02 3.040346e-02  1.059929e-01
-    ## 16  width     resid     bca 5.623801e-03 6.561317e-03  1.205328e-01
-    ## 17  width     resid    perc 3.826094e-02 3.561700e-02  8.674028e-02
-    ## 18  lower      case     bca 5.566534e-13 2.027233e-14  1.208440e-12
-    ## 19  lower      case    perc 1.404170e-12 5.212569e-14  2.976238e-12
-    ## 20  lower       cgr     bca 7.240066e-14 6.753928e-14  1.488133e-12
-    ## 21  lower       cgr    perc 7.398661e-14 7.140982e-14  1.176102e-12
-    ## 22  lower     param     bca 6.719357e-14 6.589314e-14  2.489512e-12
-    ## 23  lower     param    perc 1.314843e-13 1.272274e-13  1.010160e-12
-    ## 24  lower     resid     bca 2.715154e-14 2.685380e-14  5.704471e-12
-    ## 25  lower     resid    perc 7.393413e-14 6.896812e-14  8.320087e-13
-    ## 26  upper      case     bca 1.672204e-12 7.178851e-04  8.561414e-02
-    ## 27  upper      case    perc 2.426969e-01 1.610584e-01  3.113476e-01
-    ## 28  upper       cgr     bca 2.381270e-03 4.410040e-03  1.510736e-01
-    ## 29  upper       cgr    perc 3.583917e-02 3.347480e-02  1.076541e-01
-    ## 30  upper     param     bca 6.749628e-12 3.727612e-04  1.535322e-01
-    ## 31  upper     param    perc 3.272142e-02 3.040346e-02  1.059929e-01
-    ## 32  upper     resid     bca 5.623801e-03 6.561317e-03  1.205328e-01
-    ## 33  upper     resid    perc 3.826094e-02 3.561700e-02  8.674028e-02
-    ##       fac2_unadj    Fixed_adj  Fixed_unadj Residuals_adj Residuals_unadj
-    ## 1   2.928461e-02 4.452471e-02 4.262677e-02   0.969411498     0.928088620
-    ## 2   5.608911e-02 2.547759e+01 3.402155e-01   0.169332894     0.319557342
-    ## 3   3.158676e-02 3.346216e-02 2.912488e-02   0.035073998     0.040729901
-    ## 4   3.145995e-02 3.346201e-02 2.913841e-02   0.033842197     0.040291229
-    ## 5   2.442643e-02 3.487102e-02 3.010302e-02   0.028116318     0.037402811
-    ## 6  -2.655796e-03 9.716040e+00 5.084330e-01  -0.074456624    -0.531889281
-    ## 7   2.051578e-03 1.877404e-02 1.599702e-02  -0.007184461    -0.022402136
-    ## 8  -1.217660e-03 2.015008e-02 1.721316e-02  -0.003636676    -0.020194997
-    ## 9  -9.792803e-03 2.388600e-02 2.043164e-02   0.005142594    -0.015080870
-    ## 10  5.214478e-01 1.190412e-01 1.063777e-01   0.070452119     0.067502821
-    ## 11  7.682444e-02 5.058501e+01 9.536703e-01   0.682503779     0.938360427
-    ## 12  1.471082e-01 1.037005e-01 9.457001e-02   0.119334604     0.137857724
-    ## 13  1.023380e-01 1.259735e-01 1.095104e-01   0.116525536     0.151992410
-    ## 14  1.338868e-01 8.988349e-02 8.044488e-02   0.126099708     0.108346976
-    ## 15  1.041544e-01 1.142411e-01 9.983153e-02   0.111484778     0.144524734
-    ## 16  1.136208e-01 8.224206e-02 7.511255e-02   0.126429820     0.138856680
-    ## 17  8.336882e-02 1.310390e-01 1.131520e-01   0.100371817     0.137099701
-    ## 18  3.591153e-04 8.158971e-07 8.158964e-07   0.929547881     0.903690028
-    ## 19  1.048527e-12 2.770579e-02 2.695343e-02   0.317496221     0.006511436
-    ## 20  2.131132e-12 4.311957e-03 4.293444e-03   0.880665396     0.851621066
-    ## 21  1.052223e-12 1.139687e-02 1.126826e-02   0.883474464     0.822329890
-    ## 22  2.530743e-12 1.305163e-02 1.288348e-02   0.873900292     0.872716079
-    ## 23  9.462336e-13 1.414130e-02 1.394409e-02   0.888515222     0.825807714
-    ## 24  1.259719e-11 6.069810e-03 6.033189e-03   0.873570180     0.850177241
-    ## 25  7.941587e-13 1.260927e-02 1.245191e-02   0.899628183     0.841133840
-    ## 26  5.218069e-01 1.190420e-01 1.063785e-01   1.000000000     0.971192849
-    ## 27  7.682444e-02 5.061272e+01 9.806237e-01   1.000000000     0.944871863
-    ## 28  1.471082e-01 1.080124e-01 9.886346e-02   1.000000000     0.989478791
-    ## 29  1.023380e-01 1.373704e-01 1.207787e-01   1.000000000     0.974322301
-    ## 30  1.338868e-01 1.029351e-01 9.332836e-02   1.000000000     0.981063055
-    ## 31  1.041544e-01 1.283824e-01 1.137756e-01   1.000000000     0.970332448
-    ## 32  1.136208e-01 8.831187e-02 8.114574e-02   1.000000000     0.989033921
-    ## 33  8.336882e-02 1.436483e-01 1.256039e-01   1.000000000     0.978233541
+    ##    metric boot_type ci_type fac1_adj fac1_unadj fac2_adj fac2_unadj Fixed_adj
+    ## 1     rpt      <NA>    <NA>  1.5e-12    1.4e-12  3.1e-02    2.9e-02   4.5e-02
+    ## 2      se      case    <NA>  1.4e-01    1.4e-01  8.8e-02    5.6e-02   2.5e+01
+    ## 3      se       cgr    <NA>  9.7e-03    9.2e-03  3.3e-02    3.2e-02   3.3e-02
+    ## 4      se     param    <NA>  9.7e-03    8.9e-03  3.4e-02    3.1e-02   3.3e-02
+    ## 5      se     resid    <NA>  1.0e-02    9.4e-03  2.6e-02    2.4e-02   3.5e-02
+    ## 6    bias      case    <NA>  3.1e-02    2.6e-02  4.3e-02   -2.7e-03   9.7e+00
+    ## 7    bias       cgr    <NA>  4.6e-03    4.4e-03  2.6e-03    2.1e-03   1.9e-02
+    ## 8    bias     param    <NA>  4.5e-03    4.2e-03 -8.9e-04   -1.2e-03   2.0e-02
+    ## 9    bias     resid    <NA>  4.7e-03    4.4e-03 -9.9e-03   -9.8e-03   2.4e-02
+    ## 10  width      case     bca  1.1e-12    7.2e-04  8.6e-02    5.2e-01   1.2e-01
+    ## 11  width      case    perc  2.4e-01    1.6e-01  3.1e-01    7.7e-02   5.1e+01
+    ## 12  width       cgr     bca  2.4e-03    4.4e-03  1.5e-01    1.5e-01   1.0e-01
+    ## 13  width       cgr    perc  3.6e-02    3.3e-02  1.1e-01    1.0e-01   1.3e-01
+    ## 14  width     param     bca  6.7e-12    3.7e-04  1.5e-01    1.3e-01   9.0e-02
+    ## 15  width     param    perc  3.3e-02    3.0e-02  1.1e-01    1.0e-01   1.1e-01
+    ## 16  width     resid     bca  5.6e-03    6.6e-03  1.2e-01    1.1e-01   8.2e-02
+    ## 17  width     resid    perc  3.8e-02    3.6e-02  8.7e-02    8.3e-02   1.3e-01
+    ## 18  lower      case     bca  5.6e-13    2.0e-14  1.2e-12    3.6e-04   8.2e-07
+    ## 19  lower      case    perc  1.4e-12    5.2e-14  3.0e-12    1.0e-12   2.8e-02
+    ## 20  lower       cgr     bca  7.2e-14    6.8e-14  1.5e-12    2.1e-12   4.3e-03
+    ## 21  lower       cgr    perc  7.4e-14    7.1e-14  1.2e-12    1.1e-12   1.1e-02
+    ## 22  lower     param     bca  6.7e-14    6.6e-14  2.5e-12    2.5e-12   1.3e-02
+    ## 23  lower     param    perc  1.3e-13    1.3e-13  1.0e-12    9.5e-13   1.4e-02
+    ## 24  lower     resid     bca  2.7e-14    2.7e-14  5.7e-12    1.3e-11   6.1e-03
+    ## 25  lower     resid    perc  7.4e-14    6.9e-14  8.3e-13    7.9e-13   1.3e-02
+    ## 26  upper      case     bca  1.7e-12    7.2e-04  8.6e-02    5.2e-01   1.2e-01
+    ## 27  upper      case    perc  2.4e-01    1.6e-01  3.1e-01    7.7e-02   5.1e+01
+    ## 28  upper       cgr     bca  2.4e-03    4.4e-03  1.5e-01    1.5e-01   1.1e-01
+    ## 29  upper       cgr    perc  3.6e-02    3.3e-02  1.1e-01    1.0e-01   1.4e-01
+    ## 30  upper     param     bca  6.7e-12    3.7e-04  1.5e-01    1.3e-01   1.0e-01
+    ## 31  upper     param    perc  3.3e-02    3.0e-02  1.1e-01    1.0e-01   1.3e-01
+    ## 32  upper     resid     bca  5.6e-03    6.6e-03  1.2e-01    1.1e-01   8.8e-02
+    ## 33  upper     resid    perc  3.8e-02    3.6e-02  8.7e-02    8.3e-02   1.4e-01
+    ##    Fixed_unadj Residuals_adj Residuals_unadj
+    ## 1      4.3e-02        0.9694          0.9281
+    ## 2      3.4e-01        0.1693          0.3196
+    ## 3      2.9e-02        0.0351          0.0407
+    ## 4      2.9e-02        0.0338          0.0403
+    ## 5      3.0e-02        0.0281          0.0374
+    ## 6      5.1e-01       -0.0745         -0.5319
+    ## 7      1.6e-02       -0.0072         -0.0224
+    ## 8      1.7e-02       -0.0036         -0.0202
+    ## 9      2.0e-02        0.0051         -0.0151
+    ## 10     1.1e-01        0.0705          0.0675
+    ## 11     9.5e-01        0.6825          0.9384
+    ## 12     9.5e-02        0.1193          0.1379
+    ## 13     1.1e-01        0.1165          0.1520
+    ## 14     8.0e-02        0.1261          0.1083
+    ## 15     1.0e-01        0.1115          0.1445
+    ## 16     7.5e-02        0.1264          0.1389
+    ## 17     1.1e-01        0.1004          0.1371
+    ## 18     8.2e-07        0.9295          0.9037
+    ## 19     2.7e-02        0.3175          0.0065
+    ## 20     4.3e-03        0.8807          0.8516
+    ## 21     1.1e-02        0.8835          0.8223
+    ## 22     1.3e-02        0.8739          0.8727
+    ## 23     1.4e-02        0.8885          0.8258
+    ## 24     6.0e-03        0.8736          0.8502
+    ## 25     1.2e-02        0.8996          0.8411
+    ## 26     1.1e-01        1.0000          0.9712
+    ## 27     9.8e-01        1.0000          0.9449
+    ## 28     9.9e-02        1.0000          0.9895
+    ## 29     1.2e-01        1.0000          0.9743
+    ## 30     9.3e-02        1.0000          0.9811
+    ## 31     1.1e-01        1.0000          0.9703
+    ## 32     8.1e-02        1.0000          0.9890
+    ## 33     1.3e-01        1.0000          0.9782
 
   - AIC:
 
@@ -368,7 +371,7 @@ out$run_info
 ```
 
     ## $run_time
-    ## [1] 0.1001717
+    ## [1] 0.09164462
     ## 
     ## $parallel
     ## [1] "4"     "PSOCK"
