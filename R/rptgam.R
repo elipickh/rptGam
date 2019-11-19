@@ -17,7 +17,7 @@
 #' @param gam_pars A list of parameters for mgcv::gam model specification, which will be
 #' used when formula and data are both non-NULL. If TRUE, then the default parameter
 #' values in mgcv::gam will be used. Note that gam uses method = "GCV.Cp" by default. To 
-#' use 'REML' set gam_pars to list(method="REML"), in addition to other settings of interest.
+#' use 'REML' set gam_pars to list(method = "REML"), in addition to other settings of interest.
 #' Should not contain the control(nthreads) parameter, as this will be set by rptgam. 
 #' Only Gaussian models are currently supported.
 #' @param bam_pars A list of parameters for mgcv::bam model specification, which will be
@@ -119,48 +119,49 @@
 #' 
 #' \strong{Permutations:}
 #' Permutations are performed according to Lee et al. (2012), which permutes the weighted residuals both within 
-#' and among subjects. Note that this permutation method is different from the one currently used in rptR.
+#' and among subjects. Note that this permutation method is different from the one currently used in rptR (ver 0.9.22).
 #' 
 #' \strong{BCa:}
 #' 
-#' \strong{SELECT comparison:}
-#' If TRUE, it will run the opposite method used in the original model and both outputs will be returned for comparison.
+#' \strong{Penalized model ('SELECT') comparisons:}
+#' If TRUE, rptgam will run the opposite SELECT method used in the original model, and p-values from both methods will be returned for comparison. The SELECT method in mgcv gam/bam penalizes the terms in the model (potentially removing them altogether), as a form of variable selection (see ?mgcv::gam.selection for details). 
 #' 
 #' @return Returns an object of class \code{rptgam}.
 #' 
 #' @examples
 #' library(mgcv)
-#' dat <- gamSim(1,n=100,scale=2)
-#' fac <- sample(1:5,100,replace=TRUE)
-#' b <- rnorm(20)*.5
+#' set.seed(1)
+#' dat <- gamSim(1, n = 100, scale = 2)
+#' fac <- sample(1:5, 100, replace = TRUE)
+#' b <- rnorm(20) * 0.5
 #' dat$y <- dat$y + b[fac]
 #' dat$fac <- as.factor(fac)
 #'
 #' # GAM model with one random term
-#' rm1 <- gam(y ~ s(fac,bs="re")+s(x0)+s(x1)+s(x2)+s(x3),
-#' data=dat,method="REML")
+#' rm1 <- gam(y ~ s(fac, bs = "re") + s(x0) + s(x1) + s(x2) + s(x3),
+#' data = dat, method = "REML")
 #'
 #' # Pass the fitted GAM object into rptgam
 #' # nboot and nperm of 100 is for illustration purposes
 #' # and would typically be set higher.
-#' out = rptgam(gamObj=rm1, parallel=TRUE, nboot = 100,
-#' nperm = 100, aic=TRUE, select=TRUE, verbose=TRUE, seed=1,
+#' out <- rptgam(gamObj = rm1, parallel = TRUE, nboot = 100,
+#' nperm = 100, aic = TRUE, select = TRUE, verbose = TRUE, seed = 1,
 #'             boot_type = 'all', ci_type = 'all',
 #'             case_resample = c(TRUE,FALSE))
 #'
-#' # Alternatively, run the GAM model in rptgam
-#' out = rptgam(formula = y ~ s(fac,bs="re")+s(x0)+s(x1)+
-#' s(x2)+s(x3), data=dat, gam_pars = list(method="REML"),
-#'              parallel=TRUE, nboot = 100, nperm = 100,
-#'              aic=TRUE, select=TRUE, verbose=TRUE, seed=1,
+#' # Alternatively, run the GAM model through rptgam
+#' out <- rptgam(formula = y ~ s(fac,bs = "re") + s(x0) + s(x1)+
+#' s(x2) + s(x3), data = dat, gam_pars = list(method = "REML"),
+#'              parallel = TRUE, nboot = 100, nperm = 100,
+#'              aic = TRUE, select = TRUE, verbose = TRUE, seed = 1,
 #'              boot_type = 'all', ci_type = 'all',
 #'              case_resample = c(TRUE,FALSE))
 #'
 #' # bam + discrete method
-#' out = rptgam(formula = y ~ s(fac,bs="re")+s(x0)+s(x1)+
-#' s(x2)+s(x3), data=dat, bam_pars = list(discrete=TRUE),
-#'              parallel=TRUE, nboot = 100, nperm = 100,
-#'              aic=TRUE, select=TRUE, verbose=TRUE, seed=1,
+#' out <- rptgam(formula = y ~ s(fac, bs = "re") + s(x0) + s(x1) +
+#' s(x2) + s(x3), data = dat, bam_pars = list(discrete = TRUE),
+#'              parallel = TRUE, nboot = 100, nperm = 100,
+#'              aic = TRUE, select = TRUE, verbose = TRUE, seed = 1,
 #'              boot_type = 'all', ci_type = 'all',
 #'              case_resample = c(TRUE,FALSE))
 #'

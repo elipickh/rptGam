@@ -4,8 +4,14 @@
 \alias{bca_coverage}
 \title{Estimate the number of BCa bootstrap replicates}
 \usage{
-bca_coverage(A, ci = 0.95, perc_dev = 10, prob = 0.95,
-  boots = NULL, point = NULL)
+bca_coverage(
+  A,
+  ci = 0.95,
+  perc_dev = 10,
+  prob = 0.95,
+  boots = NULL,
+  point = NULL
+)
 }
 \arguments{
 \item{A}{A numeric value, indicating the acceleration factor. Can be estimated from the data 
