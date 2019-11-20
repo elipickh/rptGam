@@ -8,7 +8,7 @@ Author: Eliezer Pickholtz <eyp3@cornell.edu>
 Maintainer: Eliezer Pickholtz <eyp3@cornell.edu>
 Description: Estimate repeatabilties for random effect terms in GAM Gaussian models
 License: GPL (>= 2)
-Imports: methods, stats, mgcv (>= 1.8-29), parallel (>= 3.1.2), pbapply
+Imports: methods, stats, mgcv (>= 1.8-30), parallel (>= 3.1.2), pbapply
 Suggests: RhpcBLASctl
 RoxygenNote: 7.0.0
 Encoding: UTF-8
